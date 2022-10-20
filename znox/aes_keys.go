@@ -3,34 +3,33 @@ package znox
 import (
 	"crypto/rand"
 	b64 "encoding/base64"
-	"io/ioutil"
-	"log"
 	"os"
 )
 
-func GenerateAESkey() {
+func GenerateAESkey() error {
 	key := make([]byte, 32)
 	_, err := rand.Read(key)
 	if err != nil {
-		log.Fatal("Failed to generate key")
+		return err
 	}
 
 	keyB64 := b64.StdEncoding.EncodeToString(key)
 
 	err = os.WriteFile("key", []byte(keyB64), 0777)
 	if err != nil {
-		log.Fatal("Failed to write key")
+		return err
 	}
+	return nil
 }
 
-func ReadAESkey() []byte {
-	keyB64, err := ioutil.ReadFile("key")
+func ReadAESkey() ([]byte, error) {
+	keyB64, err := os.ReadFile("key")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	key, err := b64.StdEncoding.DecodeString(string(keyB64))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return key
+	return key, nil
 }
