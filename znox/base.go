@@ -32,12 +32,7 @@ const (
 
 func NewZnox(sourcePath, targetPath string, compression bool) *znox {
 
-	baseName := filepath.Base(sourcePath)
-	if strings.Contains(baseName, ".") {
-		idx := strings.Index(baseName, ".")
-		baseName = baseName[:idx]
-	}
-
+	baseName := returnBaseName(sourcePath)
 	baseTargetPath := filepath.Join(targetPath, baseName)
 	files := processFiles{
 		targetTar:           baseTargetPath + fileTypeTar,
@@ -68,7 +63,7 @@ func (zn *znox) MakeEncryption() {
 		targetEncryption = zn.files.targetCompressedEnc
 	}
 
-	Encrypt(sourceToEncrypt, targetEncryption, ReadAESkey())
+	Encrypt(sourceToEncrypt, targetEncryption, getAESkey(false))
 
 	removeProcessFiles(zn)
 }
@@ -81,7 +76,7 @@ func (zn *znox) MakeDecryption() {
 		targetDecryption = zn.files.targetTarGzip
 	}
 
-	Decrypt(zn.source, targetDecryption, ReadAESkey())
+	Decrypt(zn.source, targetDecryption, getAESkey(true))
 
 	if compression {
 		UnGzip(targetDecryption, zn.target)
@@ -92,9 +87,35 @@ func (zn *znox) MakeDecryption() {
 	removeProcessFiles(zn)
 }
 
+func getAESkey(justRead bool) []byte {
+	aesKey, err := ReadAESkey()
+	if err != nil {
+		if !justRead {
+			err = GenerateAESkey()
+			if err != nil {
+				log.Fatal("Unable to generate key")
+			}
+			aesKey, err = ReadAESkey()
+		}
+		if err != nil {
+			log.Fatal("Unable to read key")
+		}
+	}
+	return aesKey
+}
+
 func removeProcessFiles(zn *znox) {
 	os.Remove(zn.files.targetTar)
 	if zn.compression {
 		os.Remove(zn.files.targetTarGzip)
 	}
+}
+
+func returnBaseName(path string) string {
+	baseName := filepath.Base(path)
+	if strings.Contains(baseName, ".") {
+		idx := strings.Index(baseName, ".")
+		baseName = baseName[:idx]
+	}
+	return baseName
 }

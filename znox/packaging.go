@@ -9,7 +9,7 @@ import (
 )
 
 func Tar(source, target string) error {
-	filename := filepath.Base(source)
+	filename := returnBaseName(source)
 	target = filepath.Join(target, filename+".tar")
 	tarfile, err := os.Create(target)
 	if err != nil {
