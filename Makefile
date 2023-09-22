@@ -1,5 +1,5 @@
 build:
-	go build -o bin/main main.go
+	go build -ldflags "-s -w" -o znox2
 
 run:
 	go run main.go

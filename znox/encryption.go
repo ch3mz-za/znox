@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func Encrypt(source, target string, key []byte) {
+func encrypt(source, target string, key []byte) {
 	infile, err := os.Open(source)
 	if err != nil {
 		log.Fatal(err)
