@@ -19,23 +19,18 @@ type Model struct {
 	width  int
 	height int
 
-	srcFile string
-	dstDir  string
-	choice  string
-	err     string
+	sourceFile     string
+	destinationDir string
+	choice         string
+	err            string
 
 	currentPage Page
 	lastPage    Page
 	style       *Style
 	passwField  textinput.Model
-	passwords   []string
+	passwords   [2]string
 
 	list list.Model
-}
-
-func setErrorPage(m *Model) {
-	m.lastPage = m.currentPage
-	m.currentPage = ErrorPage
 }
 
 func New(src, dst string) *Model {
@@ -70,13 +65,13 @@ func New(src, dst string) *Model {
 	l.Styles.HelpStyle = s.HelpStyle
 
 	return &Model{
-		err:         err,
-		style:       s,
-		list:        l,
-		srcFile:     srcFile,
-		dstDir:      dstDir,
-		passwField:  passwField,
-		currentPage: currentPage,
+		err:            err,
+		style:          s,
+		list:           l,
+		sourceFile:     srcFile,
+		destinationDir: dstDir,
+		passwField:     passwField,
+		currentPage:    currentPage,
 	}
 }
 

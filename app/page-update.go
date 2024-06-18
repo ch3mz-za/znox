@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ch3mz-za/znox/znox"
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,6 +20,12 @@ func updatePageOptions(m *Model, msg tea.KeyMsg) tea.Cmd {
 			m.choice = string(i)
 			m.currentPage = PasswordPage
 		}
+
+		if m.choice == actionDecrypt && strings.HasSuffix(m.sourceFile, ".enc") {
+			m.destinationDir = strings.TrimSuffix(m.destinationDir, ".enc")
+		} else {
+			m.destinationDir += ".enc"
+		}
 	}
 	m.list, cmd = m.list.Update(msg)
 	return cmd
@@ -31,34 +38,42 @@ func updatePagePassword(m *Model, msg tea.KeyMsg) tea.Cmd {
 		return tea.Quit
 	case "enter":
 
-		if len(m.passwords) < 2 {
-			// TODO: Validate password before appending
-			m.passwords = append(m.passwords, m.passwField.Value())
-			m.passwField.SetValue("")
+		if m.choice == actionEncrypt {
+			if m.passwords[0] == "" {
+				// TODO: Display error if validation fails
+				m.passwords[0] = m.passwField.Value()
+				m.passwField.SetValue("")
+			} else if m.passwords[1] == "" {
+				// TODO: Display error if validation fails
+				m.passwords[1] = m.passwField.Value()
 
-		} else if len(m.passwords) > 1 {
-			if m.passwords[0] == m.passwords[1] {
+				if m.passwords[0] == m.passwords[1] {
 
-				switch m.choice {
-				case actionDecrypt:
-					if err := znox.Decryption(m.srcFile, m.dstDir, []byte(m.passwField.Value())); err != nil {
-						m.err = err.Error()
-						m.currentPage = ErrorPage
-						return cmd
-					}
-				case actionEncrypt:
 					password := []byte(m.passwField.Value())
-					if err := znox.Encryption(m.srcFile, m.dstDir, password, password); err != nil {
-						m.err = err.Error()
-						m.currentPage = ErrorPage
+					if err := znox.Encryption(m.sourceFile, m.destinationDir, password, password); err != nil {
+						setError(m, err.Error())
 						return cmd
 					}
-				}
 
-				m.err = fmt.Sprintf("Successfully %sed!", m.choice)
-				m.currentPage = StatusPage
+					m.err = fmt.Sprintf("Successfully %sed!", m.choice)
+					m.currentPage = StatusPage
+
+				} else {
+					setError(m, "Passwords do not match!")
+					m.passwords[0], m.passwords[1] = "", ""
+					m.passwField.SetValue("")
+				}
 			}
+
+		} else {
+			if err := znox.Decryption(m.sourceFile, m.destinationDir, []byte(m.passwField.Value())); err != nil {
+				setError(m, err.Error())
+				return cmd
+			}
+			m.err = fmt.Sprintf("Successfully %sed!", m.choice)
+			m.currentPage = StatusPage
 		}
+
 	}
 
 	m.passwField, cmd = m.passwField.Update(msg)

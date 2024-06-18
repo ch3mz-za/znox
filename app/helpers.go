@@ -6,6 +6,12 @@ import (
 	"path/filepath"
 )
 
+func setError(m *Model, err string) {
+	m.err = err
+	m.lastPage = m.currentPage
+	m.currentPage = ErrorPage
+}
+
 func validateSrcAndDstPaths(src, dst string) (string, string, string) {
 	if src == "" {
 		return "", "", "Provide a file to encrypt or decrypt: \n $ znox <src_file> <dest_dir>"
@@ -23,7 +29,7 @@ func validateSrcAndDstPaths(src, dst string) (string, string, string) {
 
 	// destination
 	if dst == "" {
-		dst = filepath.Dir(src) + filepath.Base(src) + ".enc"
+		dst = filepath.Join(filepath.Dir(src), filepath.Base(src))
 	} else {
 		dstStat, err := os.Stat(src)
 		if err != nil {
@@ -34,6 +40,5 @@ func validateSrcAndDstPaths(src, dst string) (string, string, string) {
 		}
 	}
 
-	fmt.Printf("src=%s dst=%s\n", src, dst)
 	return src, dst, ""
 }
