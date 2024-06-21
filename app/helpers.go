@@ -9,7 +9,7 @@ import (
 func setError(m *Model, err string) {
 	m.err = err
 	m.lastPage = m.currentPage
-	m.currentPage = ErrorPage
+	m.currentPage = m.pages[errorPage]
 }
 
 func validateSrcAndDstPaths(src, dst string) (string, string, string) {

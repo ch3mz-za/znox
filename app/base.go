@@ -24,31 +24,14 @@ type Model struct {
 	choice         string
 	err            string
 
+	pages       map[PageID]Page
 	currentPage Page
 	lastPage    Page
 	style       *Style
-	passwField  textinput.Model
-	passwords   [2]string
-
-	list list.Model
 }
 
 func New(src, dst string) *Model {
-	currentPage := OptionsPage
 	s := DefaultStyle()
-
-	// validate source and destination
-	srcFile, dstDir, err := validateSrcAndDstPaths(src, dst)
-	if err != "" {
-		currentPage = FatalErrorPage
-	}
-
-	// password field
-	passwField := textinput.New()
-	passwField.Placeholder = "Your password here"
-	passwField.EchoMode = textinput.EchoPassword
-	passwField.EchoCharacter = '•'
-	passwField.Focus()
 
 	// encrypt & decrypt list
 	items := []list.Item{
@@ -64,14 +47,37 @@ func New(src, dst string) *Model {
 	l.Styles.PaginationStyle = s.PaginationStyle
 	l.Styles.HelpStyle = s.HelpStyle
 
+	// password field
+	passwordField := textinput.New()
+	passwordField.Placeholder = "Your password here"
+	passwordField.EchoMode = textinput.EchoPassword
+	passwordField.EchoCharacter = '•'
+	passwordField.Focus()
+
+	// TODO: Load pages
+	var appPages = map[PageID]Page{
+		encryptionPage: &EncryptionPage{list: l},
+		passwordPage:   &PasswordPage{passwordField: passwordField},
+		statusPage:     &StatusPage{},
+		errorPage:      &ErrorPage{},
+		fatalErrorPage: &FatalErrorPage{},
+	}
+
+	currentPage := appPages[encryptionPage]
+
+	// validate source and destination
+	srcFile, dstDir, err := validateSrcAndDstPaths(src, dst)
+	if err != "" {
+		currentPage = appPages[fatalErrorPage]
+	}
+
 	return &Model{
 		err:            err,
 		style:          s,
-		list:           l,
 		sourceFile:     srcFile,
 		destinationDir: dstDir,
-		passwField:     passwField,
 		currentPage:    currentPage,
+		pages:          appPages,
 	}
 }
 
@@ -86,39 +92,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetWidth(msg.Width)
+
+		p := m.pages[encryptionPage].(*EncryptionPage)
+		p.list.SetWidth(msg.Width)
+
 		return m, nil
 
 	case tea.KeyMsg:
-		switch m.currentPage {
-		case OptionsPage:
-			cmd = updatePageOptions(m, msg)
-		case PasswordPage:
-			cmd = updatePagePassword(m, msg)
-		case ErrorPage:
-			cmd = updatePageError(m, msg)
-		case FatalErrorPage:
-			cmd = updatePageFatalError(msg)
-		case StatusPage:
-			cmd = updatePageStatus(msg)
-		}
+		cmd = m.currentPage.Update(m, msg)
 	}
 
 	return m, cmd
 }
 
 func (m *Model) View() string {
-	switch m.currentPage {
-	case OptionsPage:
-		return renderPageOptions(m)
-	case PasswordPage:
-		return renderPagePasswords(m)
-	case ErrorPage:
-		return renderPageError(m)
-	case FatalErrorPage:
-		return renderPageError(m)
-	case StatusPage:
-		return renderPageStatus(m)
-	}
-	return "you should not be here... better quit"
+	return m.currentPage.Render(m)
 }
